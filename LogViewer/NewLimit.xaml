@@ -1,0 +1,16 @@
+﻿<Window x:Class="LogViewer.NewLimit"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:LogViewer"
+        mc:Ignorable="d"
+        Title="Add Limit To: " Height="118.847" Width="336.154">
+    <Grid>
+        <Label x:Name="h1" Content="Label" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="308"/>
+        <Label x:Name="LimitName" Content="RPM" HorizontalAlignment="Left" Margin="10,41,0,0" VerticalAlignment="Top" Width="180"/>
+        <TextBox x:Name="LimitValue" HorizontalAlignment="Left" Height="23" Margin="190,41,0,0" TextWrapping="Wrap" Text="3000.0" VerticalAlignment="Top" Width="107"/>
+        <Button x:Name="Save" Content="Save" HorizontalAlignment="Left" Margin="190,69,0,0" VerticalAlignment="Top" Width="107" Click="Save_Click"/>
+
+    </Grid>
+</Window>

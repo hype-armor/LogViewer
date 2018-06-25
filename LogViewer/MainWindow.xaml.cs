@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -54,12 +55,16 @@ namespace LogViewer
         private string[] columns;
         private Random r = new Random();
         private List<Limit> limits = new List<Limit>();
+        private DataSet dataSet = new DataSet();
 
         public void LoadFromCSV(string file)
         {
+            listBox.Items.Clear();
+            plot.Series.Clear();
 
             // Read lines from source file
             string[] arr = System.IO.File.ReadAllLines(file);
+            LoadLimits();
 
             columns = arr[0].Split(',');
             int columntCount = columns.Count();
@@ -85,19 +90,11 @@ namespace LogViewer
                 {
                     ItemsSource = lineSeries.Points,
                     Title = columns[i],
-                    Limit = r.Next(100),
-                    Color = Color.FromRgb((byte)Int32.Parse((r.Next(0, 255)).ToString()), (byte)Int32.Parse((r.Next(0, 255)).ToString()), (byte)Int32.Parse((r.Next(0, 255)).ToString())),
-                    Color2 = Color.FromRgb((byte)Int32.Parse((r.Next(0, 255)).ToString()), (byte)Int32.Parse((r.Next(0, 255)).ToString()), (byte)Int32.Parse((r.Next(0, 255)).ToString())),
+                    Limit = GetLimitValue(columns[i]),
+                    Color = ColorMe(),
+                    Color2 = ColorMe(),
                     Visibility = Visibility.Hidden
                 };
-
-                Limit l = new Limit
-                {
-                    name = columns[i],
-                    value = r.Next(100)
-                };
-
-                limits.Add(l);
 
                 plot.Series.Add(twoColorSeries);
 
@@ -109,63 +106,85 @@ namespace LogViewer
                     };
                     checkBox.Checked += CheckBox_Checked;
                     checkBox.Unchecked += CheckBox_Unchecked;
+                    checkBox.MouseRightButtonUp += CheckBox_MouseRightButtonUp;
+
+                    if (GetLimitValue(columns[i]) == -1)
+                    {
+                        checkBox.Background = Brushes.Red;
+                    }
+                    
+
                     listBox.Items.Add(checkBox);
                 }
             }
 
-            //SaveLimits();
-            using (XmlReader reader = XmlReader.Create("limits.xml"))
-            {
-                Limit limit = new Limit();
-                while (reader.Read())
-                {
-                    // Only detect start elements.
-                    if (reader.IsStartElement())
-                    {
-                        switch (reader.Name)
-                        {
-                            case "limit":
-                                // Detect this element.
-                                Console.WriteLine("limit");
-                                reader.Read();
-                                if (reader.Read())
-                                {
-                                    Console.WriteLine("  Name node: " + reader.Value.Trim());
-                                }
-                                reader.Read(); reader.Read();
-                                if (reader.Read())
-                                {
-                                    Console.WriteLine("  Value node: " + reader.Value.Trim());
-                                }
-                                break;
-                        }
-                    }
-                }
-            }
+            
 
             //limits.Serialize();
         }
 
-        private void SaveLimits()
+        private void CheckBox_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
         {
-            using (XmlWriter writer = XmlWriter.Create("limits.xml"))
+            NewLimit newLimit = new NewLimit();
+            newLimit.Title += (sender as CheckBox).Content.ToString();
+            newLimit.name = (sender as CheckBox).Content.ToString();
+            newLimit.value = GetLimitValue((sender as CheckBox).Content.ToString()).ToString();
+            newLimit.Update();
+            newLimit.ShowDialog();
+
+            if (newLimit.newValue.Trim().Length > 0)
             {
-                writer.WriteStartDocument();
-                writer.WriteStartElement("limits");
+                SetLimitValue((sender as CheckBox).Content.ToString(), double.Parse(newLimit.newValue));
+            }
+        }
 
-                foreach (Limit limit in limits)
+        private void LoadLimits()
+        {
+            
+            dataSet.ReadXml("limits.xml", XmlReadMode.InferSchema);
+
+            foreach (DataTable table in dataSet.Tables) // not really needed.
+            {
+                foreach (DataRow row in table.AsEnumerable())
                 {
-                    writer.WriteStartElement("limit");
-
-                    writer.WriteElementString("Name", limit.name);
-                    writer.WriteElementString("Value", limit.value.ToString());
-
-
-                    writer.WriteEndElement();
+                    Limit l = new Limit
+                    {
+                        name = row[0].ToString(),
+                        value = double.Parse(row[1].ToString())
+                    };
+                    limits.Add(l);
                 }
+            }
+        }
 
-                writer.WriteEndElement();
-                writer.WriteEndDocument();
+        private double GetLimitValue(string name)
+        {
+            var o = from j in limits
+                    where j.name == name
+                    select j.value;
+            return o.Count() == 1 ? o.First() : -1;
+        }
+
+        private void SetLimitValue(string name, double value)
+        {
+            Limit o = (from j in limits
+                    where j.name == name
+                    select j).SingleOrDefault();
+
+            if (o != null)
+            {
+                o.value = value;
+            }
+            else
+            {
+                foreach (DataTable table in dataSet.Tables)
+                {
+                    DataRow dr = table.NewRow();
+                    dr[0] = name;
+                    dr[1] = value;
+                    table.Rows.Add(dr);
+                }
+                dataSet.WriteXml("limits.xml");
             }
         }
 
@@ -189,20 +208,27 @@ namespace LogViewer
                 if (item.Title == (sender as CheckBox).Content.ToString())
                 {
                     item.Visibility = Visibility.Visible;
-                    item.Color = Color.FromRgb((byte)Int32.Parse((r.Next(0, 255)).ToString()), (byte)Int32.Parse((r.Next(0, 255)).ToString()), (byte)Int32.Parse((r.Next(0, 255)).ToString()));
-                    item.Color2 = Color.FromRgb((byte)Int32.Parse((r.Next(0, 255)).ToString()), (byte)Int32.Parse((r.Next(0, 255)).ToString()), (byte)Int32.Parse((r.Next(0, 255)).ToString()));
+                    item.Color = ColorMe();
+                    item.Color2 = ColorMe();
                     plot.InvalidatePlot();
                 }
             }
-        } 
+        }
         #endregion
+
+        public Color ColorMe()
+        {
+            return Color.FromRgb(
+                (byte)Int32.Parse((r.Next(0, 255)).ToString()), 
+                (byte)Int32.Parse((r.Next(0, 255)).ToString()), 
+                (byte)Int32.Parse((r.Next(0, 255)).ToString()));
+        }
     }
 
     public class Limit
     {
         public string name;
         public double value;
-
     }
 
     public static class XmlExtension
@@ -223,4 +249,6 @@ namespace LogViewer
             }
         }
     }
+
+    
 }
