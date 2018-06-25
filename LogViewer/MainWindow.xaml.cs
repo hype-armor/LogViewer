@@ -56,6 +56,7 @@ namespace LogViewer
         private Random r = new Random();
         private List<Limit> limits = new List<Limit>();
         private DataSet dataSet = new DataSet();
+        string filePath = "limits.xml";
 
         public void LoadFromCSV(string file)
         {
@@ -123,25 +124,12 @@ namespace LogViewer
             //limits.Serialize();
         }
 
-        private void CheckBox_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
-        {
-            NewLimit newLimit = new NewLimit();
-            newLimit.Title += (sender as CheckBox).Content.ToString();
-            newLimit.name = (sender as CheckBox).Content.ToString();
-            newLimit.value = GetLimitValue((sender as CheckBox).Content.ToString()).ToString();
-            newLimit.Update();
-            newLimit.ShowDialog();
-
-            if (newLimit.newValue.Trim().Length > 0)
-            {
-                SetLimitValue((sender as CheckBox).Content.ToString(), double.Parse(newLimit.newValue));
-            }
-        }
+        
 
         private void LoadLimits()
         {
             
-            dataSet.ReadXml("limits.xml", XmlReadMode.InferSchema);
+            dataSet.ReadXml(filePath, XmlReadMode.InferSchema);
 
             foreach (DataTable table in dataSet.Tables) // not really needed.
             {
@@ -174,18 +162,36 @@ namespace LogViewer
             if (o != null)
             {
                 o.value = value;
+
+                foreach (DataTable item in dataSet.Tables)
+                {
+                    foreach (DataRow row in item.Rows)
+                    {
+                        if (row[0].ToString() == name)
+                        {
+                            row[1] = value;
+                        }
+                    }
+                }
+
+                dataSet.WriteXml(filePath);
             }
             else
             {
-                foreach (DataTable table in dataSet.Tables)
-                {
-                    DataRow dr = table.NewRow();
-                    dr[0] = name;
-                    dr[1] = value;
-                    table.Rows.Add(dr);
-                }
-                dataSet.WriteXml("limits.xml");
+                AddNewLimit(name, value);
             }
+        }
+
+        private void AddNewLimit(string name, double value)
+        {
+            foreach (DataTable table in dataSet.Tables)
+            {
+                DataRow dr = table.NewRow();
+                dr[0] = name;
+                dr[1] = value;
+                table.Rows.Add(dr);
+            }
+            dataSet.WriteXml(filePath);
         }
 
         #region Events
@@ -212,6 +218,21 @@ namespace LogViewer
                     item.Color2 = ColorMe();
                     plot.InvalidatePlot();
                 }
+            }
+        }
+
+        private void CheckBox_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            NewLimit newLimit = new NewLimit();
+            newLimit.Title += (sender as CheckBox).Content.ToString();
+            newLimit.name = (sender as CheckBox).Content.ToString();
+            newLimit.value = GetLimitValue((sender as CheckBox).Content.ToString()).ToString();
+            newLimit.Update();
+            newLimit.ShowDialog();
+
+            if (newLimit.newValue.Trim().Length > 0)
+            {
+                SetLimitValue((sender as CheckBox).Content.ToString(), double.Parse(newLimit.newValue));
             }
         }
         #endregion

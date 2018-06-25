@@ -45,6 +45,8 @@ namespace LogViewer
             {
                 newValue = value;
             }
+
+            this.Close();
         }
     }
 }
