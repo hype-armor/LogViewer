@@ -4,9 +4,19 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:LogViewer"
+        xmlns:oxy="http://oxyplot.org/wpf"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
-        
+
+        <oxy:Plot Title="{Binding Title}" Name="plot" Height="300" Width="600" Margin="10,10,182,109">
+            <oxy:Plot.Series>
+                
+            </oxy:Plot.Series>
+        </oxy:Plot>
+        <Button Content="Load Log" HorizontalAlignment="Left" Margin="0,310,0,0" VerticalAlignment="Top" Width="75" Click="LoadLog_Click"/>
+        <ListBox x:Name="listOfChkboxes" HorizontalAlignment="Left" Height="390" Margin="615,19,0,0" VerticalAlignment="Top" Width="167">
+        </ListBox>
+
     </Grid>
 </Window>
